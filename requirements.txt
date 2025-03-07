@@ -3,6 +3,5 @@ torchgeometry
 streamlit 
 matplotlib
 numpy
-pytorch
 kornia
 
