@@ -1,1 +1,8 @@
-torchgeometrypip install opencv-python torchgeometry
+opencv-python 
+torchgeometry
+streamlit 
+matplotlib
+numpy
+pytorch
+kornia
+
