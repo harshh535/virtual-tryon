@@ -55,7 +55,9 @@ def get_opt():
 def test(opt, seg, gmm, alias):
     up = nn.Upsample(size=(opt.load_height, opt.load_width), mode='bilinear')
     gauss = tgm.image.GaussianBlur((15, 15), (3, 3))
-    gauss.cuda()
+    
+    # Since we're not using CUDA, no need to move this to the GPU
+    # gauss.cuda()  # Removed because it's not needed in a CPU-only environment.
 
     test_dataset = VITONDataset(opt)
     test_loader = VITONDataLoader(opt, test_dataset)
@@ -65,24 +67,24 @@ def test(opt, seg, gmm, alias):
             img_names = inputs['img_name']
             c_names = inputs['c_name']['unpaired']
 
-            img_agnostic = inputs['img_agnostic'].cuda()
-            parse_agnostic = inputs['parse_agnostic'].cuda()
-            pose = inputs['pose'].cuda()
-            c = inputs['cloth']['unpaired'].cuda()
-            cm = inputs['cloth_mask']['unpaired'].cuda()
+            img_agnostic = inputs['img_agnostic']  # No .cuda() needed for CPU
+            parse_agnostic = inputs['parse_agnostic']  # No .cuda() needed for CPU
+            pose = inputs['pose']  # No .cuda() needed for CPU
+            c = inputs['cloth']['unpaired']  # No .cuda() needed for CPU
+            cm = inputs['cloth_mask']['unpaired']  # No .cuda() needed for CPU
 
             # Part 1. Segmentation generation
             parse_agnostic_down = F.interpolate(parse_agnostic, size=(256, 192), mode='bilinear')
             pose_down = F.interpolate(pose, size=(256, 192), mode='bilinear')
             c_masked_down = F.interpolate(c * cm, size=(256, 192), mode='bilinear')
             cm_down = F.interpolate(cm, size=(256, 192), mode='bilinear')
-            seg_input = torch.cat((cm_down, c_masked_down, parse_agnostic_down, pose_down, gen_noise(cm_down.size()).cuda()), dim=1)
+            seg_input = torch.cat((cm_down, c_masked_down, parse_agnostic_down, pose_down, gen_noise(cm_down.size())), dim=1)
 
             parse_pred_down = seg(seg_input)
             parse_pred = gauss(up(parse_pred_down))
             parse_pred = parse_pred.argmax(dim=1)[:, None]
 
-            parse_old = torch.zeros(parse_pred.size(0), 13, opt.load_height, opt.load_width, dtype=torch.float).cuda()
+            parse_old = torch.zeros(parse_pred.size(0), 13, opt.load_height, opt.load_width, dtype=torch.float)
             parse_old.scatter_(1, parse_pred, 1.0)
 
             labels = {
@@ -94,7 +96,7 @@ def test(opt, seg, gmm, alias):
                 5:  ['right_arm',   [6]],
                 6:  ['noise',       [12]]
             }
-            parse = torch.zeros(parse_pred.size(0), 7, opt.load_height, opt.load_width, dtype=torch.float).cuda()
+            parse = torch.zeros(parse_pred.size(0), 7, opt.load_height, opt.load_width, dtype=torch.float)
             for j in range(len(labels)):
                 for label in labels[j][1]:
                     parse[:, j] += parse_old[:, label]
@@ -122,7 +124,8 @@ def test(opt, seg, gmm, alias):
             for img_name, c_name in zip(img_names, c_names):
                 unpaired_names.append('{}_{}'.format(img_name.split('_')[0], c_name))
 
-            save_images(output, unpaired_names, os.path.join(opt.save_dir, opt.name))
+            save_images(output, unpaired_names, opt.save_dir)  # Save directly to results/
+
 
             if (i + 1) % opt.display_freq == 0:
                 print("step: {}".format(i + 1))
@@ -132,22 +135,27 @@ def main():
     opt = get_opt()
     print(opt)
 
-    if not os.path.exists(os.path.join(opt.save_dir, opt.name)):
-        os.makedirs(os.path.join(opt.save_dir, opt.name))
+    if not os.path.exists(opt.save_dir):
+       os.makedirs(opt.save_dir)
 
+
+    # No need to use .to(device) as all models will be used on the CPU
     seg = SegGenerator(opt, input_nc=opt.semantic_nc + 8, output_nc=opt.semantic_nc)
     gmm = GMM(opt, inputA_nc=7, inputB_nc=3)
     opt.semantic_nc = 7
     alias = ALIASGenerator(opt, input_nc=9)
     opt.semantic_nc = 13
 
+    # Load model checkpoints (no .cuda() needed)
     load_checkpoint(seg, os.path.join(opt.checkpoint_dir, opt.seg_checkpoint))
     load_checkpoint(gmm, os.path.join(opt.checkpoint_dir, opt.gmm_checkpoint))
     load_checkpoint(alias, os.path.join(opt.checkpoint_dir, opt.alias_checkpoint))
 
-    seg.cuda().eval()
-    gmm.cuda().eval()
-    alias.cuda().eval()
+    # We no longer need to move models to CUDA since we're using the CPU.
+    seg.eval()
+    gmm.eval()
+    alias.eval()
+
     test(opt, seg, gmm, alias)
 
 

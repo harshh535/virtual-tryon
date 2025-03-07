@@ -1,1 +1,1 @@
-torchgeometry
+torchgeometrypip install opencv-python torchgeometry
