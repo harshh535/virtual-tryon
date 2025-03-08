@@ -1,24 +1,21 @@
-
-
 import os
 import argparse
 import cv2
 import numpy as np
 from pathlib import Path
 import subprocess
-from matplotlib import pyplot as plt
 
 def generate_cloth_mask(input_path, output_path):
     """
     Generates a binary cloth mask for a given clothing image.
     """
     if not os.path.exists(input_path):
-        print(f"Error: File not found - {input_path}")
+        print(f"❌ Error: File not found - {input_path}")
         return
 
     img = cv2.imread(input_path)
     if img is None:
-        print(f"Error: Unable to read the image at {input_path}")
+        print(f"❌ Error: Unable to read the image at {input_path}")
         return
 
     # Convert to grayscale
@@ -46,10 +43,7 @@ def generate_cloth_mask(input_path, output_path):
     # Save the final mask
     cv2.imwrite(output_path, mask)
     print(f"✅ Cloth mask saved at: {output_path}")
-
     return output_path
-
-
 
 def clear_results_folder(results_folder):
     """Deletes all existing files in the results folder before processing."""
@@ -64,7 +58,6 @@ def clear_results_folder(results_folder):
             except Exception as e:
                 print(f"❌ Error deleting {file_path}: {e}")
         print("🗑️ Cleared previous results from results/ folder.")
-
 
 def update_test_pairs(image_folder, test_pairs_file, cloth_name):
     """
@@ -84,13 +77,13 @@ def update_test_pairs(image_folder, test_pairs_file, cloth_name):
             f.write(f"{model} {cloth_name}\n")
     print(f"✅ Updated test_pairs.txt with {cloth_name} paired to all models.")
 
-
 def main(cloth_path):
-    # Define paths
-    image_folder = r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/datasets/test/image"
-    cloth_mask_folder = r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/datasets/test/cloth-mask/"
-    test_pairs_file = r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/datasets/test_pairs.txt"
-    results_folder = r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/results/"
+    # Define paths dynamically
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
+    image_folder = os.path.join(BASE_DIR, "datasets/test/image")
+    cloth_mask_folder = os.path.join(BASE_DIR, "datasets/test/cloth-mask/")
+    test_pairs_file = os.path.join(BASE_DIR, "datasets/test_pairs.txt")
+    results_folder = os.path.join(BASE_DIR, "results/")
 
     # Ensure necessary folders exist
     os.makedirs(cloth_mask_folder, exist_ok=True)
@@ -116,11 +109,9 @@ def main(cloth_path):
     # Update test_pairs.txt
     update_test_pairs(image_folder, test_pairs_file, cloth_name)
 
-    # Run test.py automatically
+    # Run test.py automatically using system Python
     print("🚀 Running test.py to apply virtual try-on...")
-    subprocess.run([r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/venv/Scripts/python.exe", "test.py","--name", "virtual_tryon"])
-
-
+    subprocess.run(["python", "test.py", "--name", "virtual_tryon"])  # Uses system Python
 
     print("✅ Virtual try-on process complete! Results are saved in the 'results/' folder.")
 
@@ -129,3 +120,4 @@ if __name__ == "__main__":
     parser.add_argument("cloth_path", type=str, help="Path to the cloth image")
     args = parser.parse_args()
     main(args.cloth_path)
+
