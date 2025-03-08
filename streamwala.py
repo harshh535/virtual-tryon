@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import shutil
 import subprocess
 import time
 import logging
@@ -11,7 +10,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Set paths
 UPLOAD_FOLDER = "cloth/"
 RESULTS_FOLDER = "results/"
-TEST_SCRIPT = "test.py"
+AUTOMATED_SCRIPT = "automated.py"  # Only calling this
 
 # Ensure required folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -33,16 +32,17 @@ if uploaded_file is not None:
 
 # Button to run the virtual try-on process
 if st.button("Run Virtual Try-On"):
-    st.info("⏳ Running the virtual try-on model. Please wait...")
-    
-    # Run test.py script
-    result = subprocess.run(["python", TEST_SCRIPT, "--name", "virtual_tryon"], capture_output=True, text=True)
+    st.info("⏳ Running the virtual try-on process (automated.py)... Please wait.")
 
-    # Log and display output
-    st.text(result.stdout)
-    if result.stderr:
-        st.error(result.stderr)
-    
+    # Run automated.py (which internally runs test.py)
+    auto_result = subprocess.run(["python", AUTOMATED_SCRIPT], capture_output=True, text=True)
+
+    st.text(auto_result.stdout)
+    if auto_result.stderr:
+        st.error("❌ Error in automated.py")
+        st.text(auto_result.stderr)
+        st.stop()  # Stop execution if error occurs
+
     # Wait for results to be generated
     time.sleep(5)
 
@@ -69,10 +69,3 @@ if st.button("Check Results Folder"):
             st.write("⚠️ No images found in results/.")
     else:
         st.write("⚠️ results/ folder does not exist.")
-
-# Button to run test.py manually
-if st.button("Run Test.py Manually"):
-    with st.spinner("Running test.py..."):
-        result = subprocess.run(["python", TEST_SCRIPT, "--name", "virtual_tryon"], capture_output=True, text=True)
-        st.text(result.stdout)
-        st.text(result.stderr)
