@@ -55,7 +55,7 @@ if uploaded_file is not None:
                 st.image(img_path, caption=os.path.basename(img_path), use_column_width=True)
                 with open(img_path, "rb") as file:
                     st.download_button(label="Download", data=file, file_name=os.path.basename(img_path), mime="image/jpeg")
-            st.experimental_rerun()  # Force UI to refresh for new images
+            st.rerun()  # Force UI to refresh for new images
         else:
             st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
 
