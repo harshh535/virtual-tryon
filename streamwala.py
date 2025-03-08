@@ -3,21 +3,26 @@ import os
 import subprocess
 import time
 
+# Get base directory (ensures compatibility for local & cloud deployment)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_virtual_tryon(cloth_path):
-    """Runs the virtual try-on backend script using the correct virtual environment."""
-    venv_python = r"C:/Users/MSI/Desktop/clothes wala/Virtual-Try-On/venv/Scripts/python.exe"
-    subprocess.run([venv_python, "automated.py", cloth_path])
-
+    """Runs the virtual try-on backend script using the system Python."""
+    subprocess.run(["python", "automated.py", cloth_path])  # Uses system Python
 
 def get_result_images(results_folder):
-    """Fetches processed images directly from the results folder."""
+    """Fetches processed images from the results folder."""
     if not os.path.exists(results_folder):
+        st.warning("⚠️ Results folder not found!")
         return []
+
+    files = os.listdir(results_folder)
+    if not files:
+        st.warning("⚠️ No images found in the results folder!")
     
     return [
         os.path.join(results_folder, img)
-        for img in os.listdir(results_folder)
+        for img in files
         if img.endswith(('.jpg', '.png'))
     ]
 
@@ -29,8 +34,8 @@ st.write("Upload a clothing image and see it applied on all models!")
 uploaded_file = st.file_uploader("Choose a clothing image", type=["jpg", "png"])
 
 if uploaded_file is not None:
-    cloth_folder = "datasets/test/cloth/"
-    results_folder = "results/"
+    cloth_folder = os.path.join(BASE_DIR, "datasets/test/cloth/")
+    results_folder = os.path.join(BASE_DIR, "results/")
     os.makedirs(cloth_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
 
@@ -44,13 +49,10 @@ if uploaded_file is not None:
         with st.spinner("Processing... Please wait ⏳"):
             run_virtual_tryon(cloth_path)
             time.sleep(5)  # Allow script to process files
+
         st.success("🎉 Processing complete! Check the results below.")
 
-        # Extract cloth name (without extension) for result folder lookup
-        cloth_name = os.path.splitext(uploaded_file.name)[0]
-
-        # Display and provide download links for generated images
-        # Remove cloth_name argument (not needed anymore)
+        # Display generated images
         result_images = get_result_images(results_folder)
 
         if result_images:
