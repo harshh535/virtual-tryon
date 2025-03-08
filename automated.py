@@ -1,14 +1,14 @@
 import os
 import argparse
 import subprocess
+import time
+import shutil
 from pathlib import Path
 import cv2
 import numpy as np
 
 def generate_cloth_mask(input_path, output_path):
-    """
-    Generates a binary cloth mask for a given clothing image.
-    """
+    """Generates a binary cloth mask for a given clothing image."""
     if not os.path.exists(input_path):
         print(f"❌ Error: File not found - {input_path}")
         return
@@ -45,24 +45,14 @@ def generate_cloth_mask(input_path, output_path):
     print(f"✅ Cloth mask saved at: {output_path}")
     return output_path
 
-def clear_results_folder(results_folder):
-    """Deletes all existing files in the results folder before processing."""
+def remove_results_folder(results_folder):
+    """Removes the results folder inside Streamlit's environment."""
     if os.path.exists(results_folder):
-        for filename in os.listdir(results_folder):
-            file_path = os.path.join(results_folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)  # Delete file or symbolic link
-                elif os.path.isdir(file_path):
-                    os.rmdir(file_path)  # Delete empty folder
-            except Exception as e:
-                print(f"❌ Error deleting {file_path}: {e}")
-        print("🗑️ Cleared previous results from results/ folder.")
+        shutil.rmtree(results_folder)
+        print("🗑️ Removed old results/ folder to force fresh processing.")
 
 def update_test_pairs(image_folder, test_pairs_file, cloth_name):
-    """
-    Updates test_pairs.txt with the selected cloth and all models.
-    """
+    """Updates test_pairs.txt with the selected cloth and all models."""
     if not os.path.exists(image_folder):
         print(f"❌ ERROR: Image folder does not exist: {image_folder}")
         return
@@ -85,11 +75,12 @@ def main(cloth_path):
     test_pairs_file = os.path.join(BASE_DIR, "datasets/test_pairs.txt")
     results_folder = os.path.join(BASE_DIR, "results/")
 
+    # ✅ Remove old results folder (only inside Streamlit environment)
+    remove_results_folder(results_folder)
+
     # Ensure necessary folders exist
     os.makedirs(cloth_mask_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
-
-    clear_results_folder(results_folder)
 
     # Ensure image_folder exists
     if not os.path.exists(image_folder):
@@ -109,17 +100,22 @@ def main(cloth_path):
     # Update test_pairs.txt
     update_test_pairs(image_folder, test_pairs_file, cloth_name)
 
-    # Run test.py automatically using system Python
+    # ✅ Run test.py to apply virtual try-on (Force fresh processing)
     print("🚀 Running test.py to apply virtual try-on...")
     process = subprocess.Popen(["python", "test.py", "--name", "virtual_tryon"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     process.wait()  # Wait until processing is done
 
-    # Check if images were successfully generated
-    output_images = os.listdir(results_folder)
-    if output_images:
-        print(f"✅ Virtual try-on process complete! Results saved in {results_folder}.")
-    else:
-        print("⚠️ ERROR: No output images found. Something went wrong!")
+    # ✅ Wait for new images to appear
+    timeout = 30  # Maximum wait time in seconds
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        if os.path.exists(results_folder) and os.listdir(results_folder):
+            print(f"✅ Virtual try-on process complete! Results saved in {results_folder}.")
+            return  # Exit function when images are found
+        time.sleep(2)  # Wait and retry
+
+    print("⚠️ ERROR: No output images found after processing!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
