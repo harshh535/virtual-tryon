@@ -1,9 +1,9 @@
 import os
 import argparse
+import subprocess
+from pathlib import Path
 import cv2
 import numpy as np
-from pathlib import Path
-import subprocess
 
 def generate_cloth_mask(input_path, output_path):
     """
@@ -79,7 +79,7 @@ def update_test_pairs(image_folder, test_pairs_file, cloth_name):
 
 def main(cloth_path):
     # Define paths dynamically
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Get current directory
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     image_folder = os.path.join(BASE_DIR, "datasets/test/image")
     cloth_mask_folder = os.path.join(BASE_DIR, "datasets/test/cloth-mask/")
     test_pairs_file = os.path.join(BASE_DIR, "datasets/test_pairs.txt")
@@ -111,13 +111,18 @@ def main(cloth_path):
 
     # Run test.py automatically using system Python
     print("🚀 Running test.py to apply virtual try-on...")
-    subprocess.run(["python", "test.py", "--name", "virtual_tryon"])  # Uses system Python
+    process = subprocess.Popen(["python", "test.py", "--name", "virtual_tryon"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process.wait()  # Wait until processing is done
 
-    print("✅ Virtual try-on process complete! Results are saved in the 'results/' folder.")
+    # Check if images were successfully generated
+    output_images = os.listdir(results_folder)
+    if output_images:
+        print(f"✅ Virtual try-on process complete! Results saved in {results_folder}.")
+    else:
+        print("⚠️ ERROR: No output images found. Something went wrong!")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("cloth_path", type=str, help="Path to the cloth image")
     args = parser.parse_args()
     main(args.cloth_path)
-
