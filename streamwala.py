@@ -41,13 +41,16 @@ if st.button("Run Virtual Try-On"):
         st.info("⏳ Running the virtual try-on process (automated.py)... Please wait.")
 
         # Run automated.py with cloth image path as argument
+        # Run automated.py with cloth image path
         auto_result = subprocess.run(["python", AUTOMATED_SCRIPT, file_path], capture_output=True, text=True)
-
+            
+            # Print full output for debugging
+        st.text("🔍 Debugging automated.py Output:")
         st.text(auto_result.stdout)
         if auto_result.stderr:
-            st.error("❌ Error in automated.py")
-            st.text(auto_result.stderr)
-            st.stop()  # Stop execution if error occurs
+                st.error("❌ automated.py Error:")
+                st.text(auto_result.stderr)
+                st.stop()
 
         # Wait for results to be generated
         time.sleep(5)
