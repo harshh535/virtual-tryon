@@ -3,6 +3,8 @@ import argparse
 import subprocess
 import time
 import shutil
+import cv2
+import matplotlib.pyplot as plt
 from pathlib import Path
 
 def remove_results_folder(results_folder):
@@ -25,8 +27,23 @@ def generate_cloth_mask(cloth_image_path, cloth_mask_path):
 
         if os.path.exists(cloth_mask_path):
             print(f"✅ Cloth mask generated at: {cloth_mask_path}")
+            display_image(cloth_mask_path, title="Generated Cloth Mask")  # ✅ Display cloth mask
         else:
             print("❌ ERROR: Cloth mask generation failed!")
+
+def display_image(image_path, title="Image"):
+    """Displays an image using OpenCV & Matplotlib."""
+    if os.path.exists(image_path):
+        img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to correct color format
+        
+        plt.figure(figsize=(5, 5))
+        plt.imshow(img)
+        plt.axis("off")
+        plt.title(title)
+        plt.show()
+    else:
+        print(f"⚠️ ERROR: Image not found at {image_path}")
 
 def run_virtual_tryon():
     """Runs test.py to apply virtual try-on."""
