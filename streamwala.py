@@ -3,7 +3,7 @@ import os
 import subprocess
 import time
 
-# Get base directory for local storage (not GitHub)
+# Get base directory (ensures compatibility for local & cloud deployment)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_virtual_tryon(cloth_path):
@@ -19,7 +19,8 @@ def get_result_images(results_folder, timeout=30):
         if os.path.exists(results_folder):
             images = [os.path.join(results_folder, img) for img in os.listdir(results_folder) if img.endswith(('.jpg', '.png'))]
             if images:
-                return images  # Return fresh images
+                # ✅ Force reload by appending a unique query string
+                return [f"{img}?{int(time.time())}" for img in images]
         time.sleep(2)  # Wait and retry
 
     st.warning("⚠️ No new output images found within timeout period.")
@@ -52,9 +53,9 @@ if uploaded_file is not None:
         if result_images:
             st.success("🎉 Processing complete! Check the results below.")
             for img_path in result_images:
-                st.image(img_path, caption=os.path.basename(img_path), use_column_width=True)
-                with open(img_path, "rb") as file:
-                    st.download_button(label="Download", data=file, file_name=os.path.basename(img_path), mime="image/jpeg")
+                st.image(img_path, caption=os.path.basename(img_path), use_container_width=True)
+                with open(img_path.split("?")[0], "rb") as file:  # Remove query string before opening
+                    st.download_button(label="Download", data=file, file_name=os.path.basename(img_path.split("?")[0]), mime="image/jpeg")
             st.rerun()  # Force UI to refresh for new images
         else:
             st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
