@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 import logging
+import cv2
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
