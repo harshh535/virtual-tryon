@@ -59,5 +59,4 @@ if uploaded_file is not None:
         else:
             st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
 
-        else:
-            st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
+        
