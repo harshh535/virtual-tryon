@@ -3,28 +3,27 @@ import os
 import subprocess
 import time
 
-# Get base directory (ensures compatibility for local & cloud deployment)
+# Get base directory for local storage (not GitHub)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_virtual_tryon(cloth_path):
-    """Runs the virtual try-on backend script using the system Python."""
-    subprocess.run(["python", "automated.py", cloth_path])  # Uses system Python
+    """Runs the virtual try-on backend script and waits for results."""
+    process = subprocess.Popen(["python", "automated.py", cloth_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process.wait()  # Ensure the process completes before fetching results
 
-def get_result_images(results_folder):
-    """Fetches processed images from the results folder."""
-    if not os.path.exists(results_folder):
-        st.warning("⚠️ Results folder not found!")
-        return []
+def get_result_images(results_folder, timeout=30):
+    """Waits for new images to appear in results folder and returns them."""
+    start_time = time.time()
 
-    files = os.listdir(results_folder)
-    if not files:
-        st.warning("⚠️ No images found in the results folder!")
-    
-    return [
-        os.path.join(results_folder, img)
-        for img in files
-        if img.endswith(('.jpg', '.png'))
-    ]
+    while time.time() - start_time < timeout:
+        if os.path.exists(results_folder):
+            images = [os.path.join(results_folder, img) for img in os.listdir(results_folder) if img.endswith(('.jpg', '.png'))]
+            if images:
+                return images  # Return fresh images
+        time.sleep(2)  # Wait and retry
+
+    st.warning("⚠️ No new output images found within timeout period.")
+    return []
 
 # Streamlit UI
 st.title("👕 Virtual Try-On System")
@@ -47,18 +46,18 @@ if uploaded_file is not None:
 
     if st.button("Run Virtual Try-On"):
         with st.spinner("Processing... Please wait ⏳"):
-            run_virtual_tryon(cloth_path)
-            time.sleep(5)  # Allow script to process files
-
-        st.success("🎉 Processing complete! Check the results below.")
-
-        # Display generated images
-        result_images = get_result_images(results_folder)
+            run_virtual_tryon(cloth_path)  # Wait for processing to complete
+            result_images = get_result_images(results_folder)  # Fetch fresh images
 
         if result_images:
+            st.success("🎉 Processing complete! Check the results below.")
             for img_path in result_images:
                 st.image(img_path, caption=os.path.basename(img_path), use_column_width=True)
                 with open(img_path, "rb") as file:
                     st.download_button(label="Download", data=file, file_name=os.path.basename(img_path), mime="image/jpeg")
+            st.experimental_rerun()  # Force UI to refresh for new images
+        else:
+            st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
+
         else:
             st.warning("⚠️ No output images found. Please check if the try-on process completed successfully.")
